@@ -13,16 +13,17 @@ clc;
 % close all; 
 gpuDevice(1).reset() % 重置GPU，释放所有显存
 
-addpath 'D:\code\code_from_XiaLi';
-addpath 'D:\code\code_from_XiaoYang\final_version'
+% addpath 'D:\code\code_from_XiaLi';
+% addpath 'D:\code\code_from_XiaoYang\final_version'
 
 % folder_path = 'D:\Data\test_data\';
 % folder_path = strcat('D:\Data\test_data\');
-folder_path = strcat('D:\Data\20251126\one\300mJ\');
+folder_path = strcat('I:\GXL\球阵系统\26.01.21\旋转+平移 降低超声发射强度\');
 fixMatlabFilenames(folder_path);%自动校正错误文件名
 
 str_name = dir(fullfile(folder_path, '*_0.mat'));
 [datax,DAQ_time_point] = func_3D_PACT_Data_Time_Read(folder_path,str_name(1).name);
+datax = denoise_sinogram(datax);%滤除换能器带宽外的噪声
 
 % 根据表面信号判断区分超声帧和光声帧
 frame1_val = max(sum(datax(:, 1:100, 1)));
@@ -55,7 +56,7 @@ else
 end
 
 %% 系统参数设置
-reconstruct_mode = 6; % 1: 单声速CUDA重建; 2: 双声速CUDA重建; 3：内声速迭代 
+reconstruct_mode = 9; % 1: 单声速CUDA重建; 2: 双声速CUDA重建; 3：内声速迭代 
                       % 4：外声速迭代; 5:单声速迭代 6:单声速旋转复合 7:双声速旋转复合 
                       % 8:单声速相干因子旋转复合 9:单/双声速旋转平移复合 
                       % 10:超声单声速重建  11: 超声单声速遍历 12:超声旋转平移复合
@@ -797,13 +798,9 @@ switch reconstruct_mode
                 common = mean(pa_data,3);
                 tic
         
-                for frx = 1:Nframe
-                    for fry = frx:Nframe
-                        corr_res = corrcoef(pa_data(:,2501:3000,frx),pa_data(:,2501:3000,fry));%选取光声/超声信号范围
-                        corr_mat(frx,fry) = corr_res(1,2);%对称相似度矩阵
-                    end
-                end
-                corr_mat = corr_mat+corr_mat';%补全简化计算的部分
+                [T, D, F] = size(pa_data(:,2501:3000,:));
+                reshaped_data = reshape(pa_data(:,2501:3000,:), T*D, F);
+                corr_mat = corr(reshaped_data);
                 corr_line = mean(corr_mat,1);
                 corr_line = corr_line/max(corr_line(3:end));%避免静止帧相关性太强导致归一化后系数偏小
                 corr_line(1) = 1; %先采集后旋转时，强制首帧参考
@@ -813,11 +810,11 @@ switch reconstruct_mode
                 Similarity_threshold = top_vals(end);%动态调整复合时所用的相似度阈值，避免不同组数据相似度波动导致复合帧数不同
                 static_frames = static_frames(corr_line>=Similarity_threshold);
                 % 绘制相关系数图
-                % figure(11),plot(corr_line,'b'),hold on
-                % for isf = static_frames
-                %     plot(isf,corr_line(isf),'*r'),hold on
-                % end
-                % hold off;
+                figure(11),plot(corr_line,'b'),hold on
+                for isf = static_frames
+                    plot(isf,corr_line(isf),'*r'),hold on
+                end
+                hold off;
                 
                 
                 % 软件中触发速度11000对应0.800°，那么软件中触发速度10000可线性计算-改
