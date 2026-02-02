@@ -1,7 +1,7 @@
 function clean_sinogram = denoise_sinogram(raw_sinogram)
     % denoise_sinogram: 针对光声sinogram数据的频域带通滤波
-    % 输入: raw_sinogram [1024 * 4096 * n]
-    % 输出: clean_sinogram [1024 * 4096 * n]
+    % 输入: raw_sinogram [Channel*Sampling*Frame] [1024 * 4096 * n]
+    % 输出: clean_sinogram [Channel*Sampling*Frame] [1024 * 4096 * n]
 
     %% 1. 参数设置
     fs = 40e6;              % 采样频率 40MHz
@@ -22,7 +22,7 @@ function clean_sinogram = denoise_sinogram(raw_sinogram)
     %% 2. 设计 Butterworth 滤波器
     % 归一化截止频率 (Wn = f / (fs/2))
     Wn = [f_low, f_high] / (fs / 2);
-    order = 4; % 4阶通常能兼顾过渡带陡峭度和计算性能
+    order = 4; % 4阶兼顾过渡带陡峭度和计算性能
     [b, a] = butter(order, Wn, 'bandpass');
     
     %% 3. 执行滤波
@@ -52,5 +52,5 @@ function clean_sinogram = denoise_sinogram(raw_sinogram)
     
     fprintf('去噪完成。\n');
 
-    plot_denoise_comparison(raw_sinogram, clean_sinogram, 1, 512, fs);
+    plot_denoise_comparison(raw_sinogram, clean_sinogram, 1, 512, fs); % 查看去噪前后效果对比
 end

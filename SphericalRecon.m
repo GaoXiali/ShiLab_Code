@@ -23,7 +23,6 @@ fixMatlabFilenames(folder_path);%自动校正错误文件名
 
 str_name = dir(fullfile(folder_path, '*_0.mat'));
 [datax,DAQ_time_point] = func_3D_PACT_Data_Time_Read(folder_path,str_name(1).name);
-datax = denoise_sinogram(datax);%滤除换能器带宽外的噪声
 
 % 根据表面信号判断区分超声帧和光声帧
 frame1_val = max(sum(datax(:, 1:100, 1)));
@@ -71,6 +70,7 @@ V_US = 1500;
 US_FRAME_COMPOUND = 20;
 Dynamic_Range = 20; % dB
 Is_Gating = 1; % 1表示需要门控，0表示不需要门控,直接对前US_FRAME_COMPOUND帧进行复合
+Is_Denoising = 1; % 1表示去噪，0表示不去噪，去除换能器接收带宽外的噪声，会一定程度增加计算量
 
 % VM_out = waterSoundSpeed(T); % 外声速（水），单位 m/s 
 VM_out = 1481.5; % 外声速（水），单位 m/s  
@@ -106,6 +106,9 @@ Ellipse.centery = -1.1;
 Ellipse.centerz = 7.2;
 
 %系统参数
+if Is_Denoising == 1 
+    data = denoise_sinogram(data);%滤除换能器带宽外的噪声
+end
 predelay = -DL1; % 预延迟设置
 pa_data = -data;% 取负是为了让重建背景反色
 fs = 40; % 声音采样频率 单位为MHz
@@ -500,32 +503,6 @@ switch reconstruct_mode
         pa_total = zeros(size(Points_img(:,:,:,1)));
         pa_img_frames = zeros(Npixel_x,Npixel_y,Npixel_z,Nframe);
 
-        % FOV = [x_size,y_size,z_size];
-        % center = [center_x,center_y,center_z];
-        % corr_mat = zeros(Nframe,Nframe);
-        % % 产生静态帧-门控-改
-        % common = mean(pa_data,3);
-        % tic
-        % 
-        % for frx = 1:Nframe
-        %     for fry = frx:Nframe
-        %         corr_res = corrcoef(pa_data(:,2201:3000,frx),pa_data(:,2201:3000,fry));
-        %         corr_mat(frx,fry) = corr_res(1,2);%对称相似度矩阵
-        %     end
-        % end
-        % corr_mat = corr_mat+corr_mat';%补全简化计算的部分
-        % corr_line = mean(corr_mat,1);
-        % corr_line = corr_line/max(corr_line(:));
-        % static_frames = 1:Nframe;
-        % static_frames = static_frames(find(corr_line>=0.85));
-        % figure,plot(corr_line,'b'),hold on, 
-        % for isf = static_frames
-        %     plot(isf,corr_line(isf),'*r'),hold on,
-        % end
-        % hold off;
-        % toc
-
-
         % 提取目标区间数据
         sub_data = data(:, :, :); 
         % 将数据展平为 (样本数*特征数) x 帧数 的二维矩阵
@@ -609,7 +586,6 @@ switch reconstruct_mode
             % 
             % end
             pa_total = pa_total+pa_img2;
-
             pa_img_frames(:,:,:,frame) = pa_img2;
 
             firstframe_flag = 0;%关闭首帧标识
@@ -638,7 +614,6 @@ switch reconstruct_mode
             imwrite(mat2gray(squeeze(max(pa_total(end:-1:1,:,:),[],3))), filenameXY);
             
         end
-        
         
 
     case 8 %单声速相干因子法多帧复合
@@ -732,21 +707,21 @@ switch reconstruct_mode
         end
 
     case 9 %单/双声速旋转平移复合
-        % 子程序对应采集数据说明：
+        %% 子程序对应采集数据说明：
         % 使用的双声速重建的函数，但双声速功能尚未修改完成
         % 为了保证不同数据的方向相同，程序固定第一帧为复合模板，因此在采集数据时应当先采集再旋转
         % 当前程序设定采集帧率为10Hz，程序中包含未旋转帧过滤程序，默认过滤从开始采集后的部分数据，确保复合数据均为旋转数据
         
         imgsize = size(Points_img,1:3);
-        pa_img_total = zeros(imgsize+[step_length_y*resolution_factor*(Nframey_scan-1) ...
-                                           step_length_x*resolution_factor*(Nframex_scan-1) 0]);    
-        [totalsize_y,totalsize_x,totalsize_z] = size(pa_img_total);%最终平移拼接后的图像像素尺寸，单位像素数
+        pa_img_total = zeros(imgsize+[step_length_y*resolution_factor*(Nframey_scan-mod(Nframey_scan-1,step_y)-1) ...
+                                           step_length_x*resolution_factor*(Nframex_scan-mod(Nframex_scan-1,step_x)-1) 0]);    
+          [totalsize_y,totalsize_x,totalsize_z] = size(pa_img_total);%最终平移拼接后的图像像素尺寸，单位像素数
         pa_count_total = zeros(totalsize_y, totalsize_x, totalsize_z, 'single');%计数矩阵，用于计算掩膜权重和帧数的影响
         x_range_total = -totalsize_x/resolution_factor/2:totalsize_x/resolution_factor/2;%物理长度坐标，单位mm
         y_range_total = -totalsize_y/resolution_factor/2:totalsize_y/resolution_factor/2;
         z_range_total = -totalsize_z/resolution_factor/2:totalsize_z/resolution_factor/2 + center_z;
 
-        % --- 绘图窗口初始化 ---
+        %% --- 绘图窗口初始化 ---
         f9 = figure(9); 
         subplot(131); 
         h_img9_1 = imagesc(x_range, y_range, zeros(length(y_range), length(x_range))); % 初始化空图，拿到句柄 h_img9_1
@@ -774,30 +749,39 @@ switch reconstruct_mode
         subplot(133); h_img10_3 = imagesc(z_range_total, y_range_total, zeros(length(y_range_total), length(z_range_total))); % 注意尺寸
         axis equal tight; colormap gray; colorbar; axis equal;set(gca, 'YDir', 'normal');set(gca, 'tickdir', 'out');
         ylabel('Y'); xlabel('Z');title('ZY proj'); 
+
+        VM_out_start = VM_out;
         
         for xframe = 1:step_x:Nframex_scan
 
             for yframe = 1:step_y:Nframey_scan %文件数量方向
 
-                VM_out = VM_out-0.05; %水温降低的声速补偿，若实验使用冷水则关闭该补偿
+                VM_out = VM_out_start-0.09*(yframe-1 + yframe*(xframe-1)); %水温降低的声速补偿，若实验使用冷水则关闭该补偿
                 VM_in = VM_out;
                 frame_idx = 1+((xframe-1)*Nframey_scan+(yframe-1))*4;
                 [datax,DAQ_time_point] = func_3D_PACT_Data_Time_Read(folder_path,str_name(frame_idx).name);
-                pa_data = -datax(:,:,1:2:end);%选取光声帧或超声帧
+                
+                % 根据表面信号判断区分超声帧和光声帧
+                frame1_val = max(sum(datax(:, 1:100, 1)));
+                frame2_val = max(sum(datax(:, 1:100, 2)));
+                offset = (frame1_val < frame2_val); 
+                pa_idx = (1 + offset) : 2 : size(datax, 3); % 光声帧索引
+                us_idx = (2 - offset) : 2 : size(datax, 3); % 超声帧索引
+                
+                pa_data = -datax(:,:,pa_idx);%选择光声帧数
                 figure(1);imagesc(pa_data(:,:,1),[-100,100]);
+                if Is_Denoising == 1 
+                    pa_data = denoise_sinogram(pa_data);%滤除换能器带宽外的噪声
+                end
 
-                x_sensor_new = x_sensor;% + (xframe-1)*step_length_x;
-                y_sensor_new = y_sensor;% - (yframe-1)*step_length_y;
                 pa_data_frame = gpuArray(single(pa_data(:,:,yframe))); % [Nelemt x Nsample]
-                detector_new = gpuArray(single([x_sensor_new,y_sensor_new,z_sensor,z_sensor*0+1]));% [Nelemt x 3]
+                detector_new = gpuArray(single([x_sensor,y_sensor,z_sensor,z_sensor*0+1]));% [Nelemt x 3]
         %
                 pa_total = zeros(size(Points_img(:,:,:,1)),'single');
         
-                corr_mat = zeros(Nframe,Nframe);
-                % 产生静态帧-门控
-                common = mean(pa_data,3);
+                common = mean(pa_data,3);% 产生静态帧-门控
+
                 tic
-        
                 [T, D, F] = size(pa_data(:,2501:3000,:));
                 reshaped_data = reshape(pa_data(:,2501:3000,:), T*D, F);
                 corr_mat = corr(reshaped_data);
