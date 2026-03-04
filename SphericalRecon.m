@@ -18,11 +18,11 @@ gpuDevice(1).reset() % 重置GPU，释放所有显存
 
 % folder_path = 'D:\Data\test_data\';
 % folder_path = strcat('D:\Data\test_data\');
-folder_path = strcat('I:\GXL\球阵系统\26.01.27\z=0\\');
+folder_path = strcat('I:\GXL\球阵系统\2026.2.3\back_scan\');
 fixMatlabFilenames(folder_path);%自动校正错误文件名
 
 str_name = dir(fullfile(folder_path, '*_0.mat'));
-[datax,DAQ_time_point] = func_3D_PACT_Data_Time_Read(folder_path,str_name(157).name);
+[datax,DAQ_time_point] = func_3D_PACT_Data_Time_Read(folder_path,str_name(141).name);
 
 % 根据表面信号判断区分超声帧和光声帧
 frame1_val = max(sum(datax(:, 1:100, 1)));
@@ -46,7 +46,7 @@ detector(:,2) = detector(:,2)+0.39;
 
 % figure(1);imagesc(-data(:,:,1));colormap gray;
 
-folders = {'USresult', 'result'}; % 将所有需要创建的文件夹放在这里
+folders = {'USresult', 'PAresult'}; % 将所有需要创建的文件夹放在这里
 
 for i = 1:length(folders)
     % 修正：第二个参数必须是 'dir'
@@ -67,8 +67,8 @@ reconstruct_mode = 9; % 1: 单声速CUDA重建; 2: 双声速CUDA重建; 3：内�
 
 % 声速设置
 T = 22.8; % 水温
-V_M = 1482.0;
-V_M_Range = 1480:0.5:1520; % 单声速迭代范围
+V_M = 1502.0;
+V_M_Range = 1496:0.5:1520; % 单声速迭代范围
 
 % 超声参数设置
 V_US = 1500;
@@ -79,29 +79,29 @@ Is_Gating = 1; % 1表示需要门控，0表示不需要门控,直接对前US_FRA
 Is_Denoising = 1; % 1表示去噪，0表示不去噪，去除换能器接收带宽外的噪声，会一定程度增加计算量(目前仅修改了光声相关代码）
 
 % VM_out = waterSoundSpeed(T); % 外声速（水），单位 m/s 
-VM_out = 1482; % 外声速（水），单位 m/s  
+VM_out = 1502; % 外声速（水），单位 m/s  
 VM_out_Range = 1475:0.5:1499; % 外声速迭代范围
-VM_in = 1482; % 内声速，单位 m/s  
+VM_in = 1502; % 内声速，单位 m/s  
 VM_in_Range = 1555:5:1699; % 内声速迭代范围
 
 % 位移扫描参数
 step_x = 1; %mm 平移复合位移数（文件数量方向）
 step_y = 1; %mm 平移复合位移数(帧/文件数量方向）
-step_length_x = 10; %mm 水平相邻两帧位移距离
-step_length_y = 10; %mm 垂直相邻两帧位移距离
-Nframex_scan = 9; %x方向扫描次数
+step_length_x = 6; %mm 水平相邻两帧位移距离
+step_length_y = 8; %mm 垂直相邻两帧位移距离
+Nframex_scan = 7; %x方向扫描次数
 Ndata = size(str_name,1)/4;%采集数据组数
-Nframey_scan = floor(Ndata/Nframex_scan); %y方向扫描次数
-GaussianMask_FWHM = 40; % 子图中的高斯掩膜尺寸，避免拼接出缝，小散射片用20，大散射片用40
+Nframey_scan = 10;%floor(Ndata/Nframex_scan); %y方向扫描次数
+GaussianMask_FWHM = 30; % 子图中的高斯掩膜尺寸，避免拼接出缝，小散射片用20，大散射片用40
 
 % 图像重建的尺寸设置
-x_size = 80;
-y_size = 80;
-z_size = 10;
+x_size = 60;
+y_size = 60;
+z_size = 20;
 resolution_factor = 10; % 分辨率因子
-center_x = -1.75;  % 中心坐标X
-center_y = 3.35; % 中心坐标Y
-center_z = 5;  % 中心坐标Z
+center_x = -0;  % 中心坐标X
+center_y = 0; % 中心坐标Y
+center_z = 0;  % 中心坐标Z
 
 %椭球面参数设置
 Ellipse.a = 15.0; % 椭球面x轴半径
@@ -211,9 +211,9 @@ switch reconstruct_mode
             ylabel('Y'); xlabel('X'); title('XY proj'); set(gca, 'tickdir', 'out'); 
             % drawEllipsoidOverlay(Ellipse);%显示双声速范围
 
-            filenameZX = sprintf('zx frame=%d,V_M=%.1f.png',frame, V_M);
-            filenameZY = sprintf('zy frame=%d,V_M=%.1f.png',frame, V_M);
-            filenameXY = sprintf('xy frame=%d,V_M=%.1f.png',frame, V_M);
+            filenameZX = sprintf('PAresult/zx frame=%d,V_M=%.1f.png',frame, V_M);
+            filenameZY = sprintf('PAresult/zy frame=%d,V_M=%.1f.png',frame, V_M);
+            filenameXY = sprintf('PAresult/xy frame=%d,V_M=%.1f.png',frame, V_M);
             imwrite(mat2gray(squeeze(max(pa_img2(end:-1:1,:,:),[],1))), filenameZX);
             imwrite(mat2gray(squeeze(max(pa_img2(end:-1:1,:,:),[],2))), filenameZY);
             imwrite(mat2gray(squeeze(max(pa_img2(end:-1:1,:,:),[],3))), filenameXY);
@@ -259,9 +259,9 @@ switch reconstruct_mode
             axis equal tight; colormap gray; colorbar; axis equal;set(gca, 'YDir', 'normal');
             ylabel('Y'); xlabel('X'); title('XY proj'); set(gca, 'tickdir', 'out'); 
 
-            filenameZX = sprintf('zx frame=%d,VM_out=%.1f,VM_in=%.1f.png',frame, VM_out, VM_in);
-            filenameZY = sprintf('zy frame=%d,VM_out=%.1f,VM_in=%.1f.png',frame, VM_out, VM_in);
-            filenameXY = sprintf('xy frame=%d,VM_out=%.1f,VM_in=%.1f.png',frame, VM_out, VM_in);
+            filenameZX = sprintf('PAresult/zx frame=%d,VM_out=%.1f,VM_in=%.1f.png',frame, VM_out, VM_in);
+            filenameZY = sprintf('PAresult/zy frame=%d,VM_out=%.1f,VM_in=%.1f.png',frame, VM_out, VM_in);
+            filenameXY = sprintf('PAresult/xy frame=%d,VM_out=%.1f,VM_in=%.1f.png',frame, VM_out, VM_in);
             imwrite(mat2gray(squeeze(max(pa_img2(end:-1:1,:,:),[],1))), filenameZX);
             imwrite(mat2gray(squeeze(max(pa_img2(end:-1:1,:,:),[],2))), filenameZY);
             imwrite(mat2gray(squeeze(max(pa_img2(end:-1:1,:,:),[],3))), filenameXY);
@@ -303,9 +303,9 @@ switch reconstruct_mode
                 ylabel('Y'); xlabel('X'); title('XY proj'); set(gca, 'tickdir', 'out'); 
                 set(gca, 'tickdir', 'out');title(['VM_out = ',num2str(VM_out)]); 
                 
-                filenameZX = sprintf('zx VM_out=%.1f,VM_in=%.1f.png', VM_out,VM_in);
-                filenameZY = sprintf('zy VM_out=%.1f,VM_in=%.1f.png', VM_out,VM_in);
-                filenameXY = sprintf('xy VM_out=%.1f,VM_in=%.1f.png', VM_out,VM_in);
+                filenameZX = sprintf('PAresult/in zx VM_out=%.1f,VM_in=%.1f.png', VM_out,VM_in);
+                filenameZY = sprintf('PAresult/in zy VM_out=%.1f,VM_in=%.1f.png', VM_out,VM_in);
+                filenameXY = sprintf('PAresult/in xy VM_out=%.1f,VM_in=%.1f.png', VM_out,VM_in);
                 imwrite(mat2gray(squeeze(max(pa_img2(end:-1:1,:,:),[],1))), filenameZX);
                 imwrite(mat2gray(squeeze(max(pa_img2(end:-1:1,:,:),[],2))), filenameZY);
                 imwrite(mat2gray(squeeze(max(pa_img2(end:-1:1,:,:),[],3))), filenameXY);
@@ -349,9 +349,9 @@ switch reconstruct_mode
                 ylabel('Y'); xlabel('X'); title('XY proj'); set(gca, 'tickdir', 'out'); 
                 set(gca, 'tickdir', 'out');title(['VM_out = ',num2str(VM_out)]); 
                 
-                filenameZX = sprintf('out zx VM_out=%.1f,VM_in=%.1f.png', VM_out,VM_in);
-                filenameZY = sprintf('out zy VM_out=%.1f,VM_in=%.1f.png', VM_out,VM_in);
-                filenameXY = sprintf('out xy VM_out=%.1f,VM_in=%.1f.png', VM_out,VM_in);
+                filenameZX = sprintf('PAresult/out zx VM_out=%.1f,VM_in=%.1f.png', VM_out,VM_in);
+                filenameZY = sprintf('PAresult/out zy VM_out=%.1f,VM_in=%.1f.png', VM_out,VM_in);
+                filenameXY = sprintf('PAresult/out xy VM_out=%.1f,VM_in=%.1f.png', VM_out,VM_in);
                 imwrite(mat2gray(squeeze(max(pa_img2(end:-1:1,:,:),[],1))), filenameZX);
                 imwrite(mat2gray(squeeze(max(pa_img2(end:-1:1,:,:),[],2))), filenameZY);
                 imwrite(mat2gray(squeeze(max(pa_img2(end:-1:1,:,:),[],3))), filenameXY);
@@ -394,9 +394,9 @@ switch reconstruct_mode
                 ylabel('Y'); xlabel('X'); title('XY proj'); set(gca, 'tickdir', 'out'); 
                 set(gca, 'tickdir', 'out');title(['VM = ',num2str(V_M)]); 
                 
-                filenameZX = sprintf('zx VM=%.1f.png', V_M);
-                filenameZY = sprintf('zy VM=%.1f.png', V_M);
-                filenameXY = sprintf('xy VM=%.1f.png', V_M);
+                filenameZX = sprintf('PAresult/zx VM=%.1f.png', V_M);
+                filenameZY = sprintf('PAresult/zy VM=%.1f.png', V_M);
+                filenameXY = sprintf('PAresult/xy VM=%.1f.png', V_M);
                 imwrite(mat2gray(squeeze(max(pa_img2(end:-1:1,:,:),[],1))), filenameZX);
                 imwrite(mat2gray(squeeze(max(pa_img2(end:-1:1,:,:),[],2))), filenameZY);
                 imwrite(mat2gray(squeeze(max(pa_img2(end:-1:1,:,:),[],3))), filenameXY);
@@ -505,9 +505,9 @@ switch reconstruct_mode
             ylabel('Y'); xlabel('X'); title('XY proj'); set(gca, 'tickdir', 'out'); 
             title(frame)
 
-            filenameZX = sprintf('result/Single Speed Compounding zx frame=%d,V_M=%.1f.png',frame, V_M);
-            filenameZY = sprintf('result/Single Speed Compounding zy frame=%d,V_M=%.1f.png',frame, V_M);
-            filenameXY = sprintf('result/Single Speed Compounding xy frame=%d,V_M=%.1f.png',frame, V_M);
+            filenameZX = sprintf('PAresult/Single Speed Compounding zx frame=%d,V_M=%.1f.png',frame, V_M);
+            filenameZY = sprintf('PAresult/Single Speed Compounding zy frame=%d,V_M=%.1f.png',frame, V_M);
+            filenameXY = sprintf('PAresult/Single Speed Compounding xy frame=%d,V_M=%.1f.png',frame, V_M);
             imwrite(mat2gray(squeeze(max(pa_total(:,:,:),[],1))), filenameZX);
             imwrite(mat2gray(squeeze(max(pa_total(:,:,:),[],2))), filenameZY);
             imwrite(mat2gray(squeeze(max(pa_total(:,:,:),[],3))), filenameXY);
@@ -623,9 +623,9 @@ switch reconstruct_mode
             ylabel('Y'); xlabel('X'); title('XY proj'); set(gca, 'tickdir', 'out'); 
             drawEllipsoidOverlay(Ellipse);%显示双声速范围
 
-            filenameZX = sprintf('result/Dual Speed Compounding zx frame=%d,VM_out=%.1f,VM_in=%.1f.png',frame, VM_out,VM_in);
-            filenameZY = sprintf('result/Dual Speed Compounding zy frame=%d,VM_out=%.1f,VM_in=%.1f.png',frame, VM_out,VM_in);
-            filenameXY = sprintf('result/Dual Speed Compounding xy frame=%d,VM_out=%.1f,VM_in=%.1f.png',frame, VM_out,VM_in);
+            filenameZX = sprintf('PAresult/Dual Speed Compounding zx frame=%d,VM_out=%.1f,VM_in=%.1f.png',frame, VM_out,VM_in);
+            filenameZY = sprintf('PAresult/Dual Speed Compounding zy frame=%d,VM_out=%.1f,VM_in=%.1f.png',frame, VM_out,VM_in);
+            filenameXY = sprintf('PAresult/Dual Speed Compounding xy frame=%d,VM_out=%.1f,VM_in=%.1f.png',frame, VM_out,VM_in);
             imwrite(mat2gray(squeeze(max(pa_total(end:-1:1,:,:),[],1))), filenameZX);
             imwrite(mat2gray(squeeze(max(pa_total(end:-1:1,:,:),[],2))), filenameZY);
             imwrite(mat2gray(squeeze(max(pa_total(end:-1:1,:,:),[],3))), filenameXY);
@@ -773,7 +773,7 @@ switch reconstruct_mode
 
             for yframe = 1:step_y:Nframey_scan %文件数量方向
 
-                VM_out = VM_out_start-0.09*(yframe-1 + yframe*(xframe-1)); %水温降低的声速补偿，若实验使用冷水则关闭该补偿
+                % VM_out = VM_out_start-0.09*(yframe-1 + yframe*(xframe-1)); %水温降低的声速补偿，若实验使用冷水则关闭该补偿
                 VM_in = VM_out;
                 frame_idx = 1+((xframe-1)*Nframey_scan+(yframe-1))*4;
                 [datax,DAQ_time_point] = func_3D_PACT_Data_Time_Read(folder_path,str_name(frame_idx).name);
@@ -791,7 +791,7 @@ switch reconstruct_mode
                     pa_data = denoise_sinogram(pa_data);%滤除换能器带宽外的噪声
                 end
 
-                pa_data_frame = gpuArray(single(pa_data(:,:,yframe))); % [Nelemt x Nsample]
+                pa_data_frame = gpuArray(single(pa_data(:,:,1))); % [Nelemt x Nsample]
                 detector_new = gpuArray(single([x_sensor,y_sensor,z_sensor,z_sensor*0+1]));% [Nelemt x 3]
         %
                 pa_total = zeros(size(Points_img(:,:,:,1)),'single');
@@ -809,10 +809,10 @@ switch reconstruct_mode
                     Similarity_threshold = top_vals(end);%动态调整复合时所用的相似度阈值，避免不同组数据相似度波动导致复合帧数不同
                     static_frames = static_frames(corr_line>=Similarity_threshold);
                     % 绘制相关系数图
-                    figure(11),plot(corr_line,'b'),hold on
-                    for isf = static_frames
-                        plot(isf,corr_line(isf),'*r'),hold on
-                    end
+                    % figure(11),plot(corr_line,'b'),hold on
+                    % for isf = static_frames
+                    %     plot(isf,corr_line(isf),'*r'),hold on
+                    % end
                     hold off;
                 else
                     static_frames = 1:Nframe;
@@ -1566,8 +1566,8 @@ switch reconstruct_mode
                 
                 %%
                 center_x = -1.75 - 40 + (xframe-1)*step_x*step_length_x;  % 将粒子所在位置设为视场中心坐标X
-                center_y = 3.35 - 30 + (yframe-1)*step_y*step_length_y; % 将粒子所在位置设为视场中心坐标Y
-                center_z = 5;  % 中心坐标Z
+                center_y = 3.35 - 40 + (yframe-1)*step_y*step_length_y; % 将粒子所在位置设为视场中心坐标Y
+                center_z = 0;  % 中心坐标Z
                 
                 x_range = ((1:Npixel_x)-(Npixel_x+1)/2)*x_size/(Npixel_x-1) + center_x;
                 y_range = ((1:Npixel_y)-(Npixel_y+1)/2)*y_size/(Npixel_y-1) + center_y;
@@ -1756,23 +1756,23 @@ axis equal tight; colormap gray; colorbar; set(gca, 'tickdir', 'out');
 ylabel('Y'); xlabel('Z'); title('YZ proj'); 
 
 
-dr = 20;
-iq_total = sum(iq_image_frame,4);
-
-bm_im = abs(iq_total);
-bm_im = bm_im / max(bm_im, [], 'all');
-bm = 20*log10(bm_im);
-bm(bm<-dr) = -dr;
-bm_total = bm +dr;
-
-figure(2); 
-% set(gca,'position',[0.1,0.1,0.8,0.8]);
-subplot(131); imagesc(squeeze(max(bm_total(:,:,:),[],1))); 
-axis equal tight; colormap gray; colorbar; set(gca, 'tickdir', 'out'); 
-ylabel('X'); xlabel('Z'); title('XZ proj'); 
-subplot(132); imagesc(squeeze(max(bm_total(:,:,:),[], 3))'); 
-axis equal tight; colormap gray; colorbar; 
-ylabel('Y'); xlabel('X'); title('XY proj'); set(gca, 'tickdir', 'out'); 
-subplot(133); imagesc(squeeze(max(bm_total(:,:,:),[], 2))); 
-axis equal tight; colormap gray; colorbar; set(gca, 'tickdir', 'out'); 
-ylabel('Y'); xlabel('Z'); title('YZ proj'); 
+% dr = 20;
+% iq_total = sum(iq_image_frame,4);
+% 
+% bm_im = abs(iq_total);
+% bm_im = bm_im / max(bm_im, [], 'all');
+% bm = 20*log10(bm_im);
+% bm(bm<-dr) = -dr;
+% bm_total = bm +dr;
+% 
+% figure(2); 
+% % set(gca,'position',[0.1,0.1,0.8,0.8]);
+% subplot(131); imagesc(squeeze(max(bm_total(:,:,:),[],1))); 
+% axis equal tight; colormap gray; colorbar; set(gca, 'tickdir', 'out'); 
+% ylabel('X'); xlabel('Z'); title('XZ proj'); 
+% subplot(132); imagesc(squeeze(max(bm_total(:,:,:),[], 3))'); 
+% axis equal tight; colormap gray; colorbar; 
+% ylabel('Y'); xlabel('X'); title('XY proj'); set(gca, 'tickdir', 'out'); 
+% subplot(133); imagesc(squeeze(max(bm_total(:,:,:),[], 2))); 
+% axis equal tight; colormap gray; colorbar; set(gca, 'tickdir', 'out'); 
+% ylabel('Y'); xlabel('Z'); title('YZ proj'); 
