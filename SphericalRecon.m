@@ -916,6 +916,16 @@ switch reconstruct_mode
                 imin=min(pa_img_total_2,[],"all");
                 imax=max(pa_img_total_2,[],"all");
 
+                theta = 4; % 补偿旋转角度，逆时针为正，顺时针为负
+                R = [cosd(theta) -sind(theta) 0 0;
+                     sind(theta)  cosd(theta) 0 0;
+                     0            0           1 0;
+                     0            0           0 1];
+                
+                tform = affinetform3d(R);
+                % 注意：imwarp 默认会改变输出矩阵的大小以容纳旋转后的图像
+                pa_img_total_2 = imwarp(pa_img_total_2, tform);
+
                 % 更新 Figure 10 的数据
                 set(h_img10_1, 'CData', squeeze(max(pa_img_total_2(:,:,:),[],1)));
                 set(h_img10_1.Parent, 'CLim', [imin, imax]); 
@@ -935,9 +945,13 @@ switch reconstruct_mode
                 imwrite(mat2gray(squeeze(max(pa_img_total_2(end:-1:1,:,:),[],3))), filenameXY);
             end %yframe end
         end %xframe end
-            pa_img_total_2_cut = pa_img_total_2(1:end-150,1:end-100,140:end-60);%切掉图像多余部分，需确认参数
-            % volumeViewer(pa_img_total_2_cut);
-            save('pa_img_total_step1.mat', 'pa_img_total_2', '-v7.3');
+            figure();
+            subplot(1,3,1),imagesc(squeeze(max(pa_img_total_2(:,:,:),[],1)));
+            subplot(1,3,2),imagesc(squeeze(max(pa_img_total_2(:,:,:),[],3)));
+            subplot(1,3,3),imagesc(squeeze(max(pa_img_total_2(:,:,:),[],2)));
+            pa_img_total_2_cut = pa_img_total_2(200:1133,422:855,38:end);%切掉图像多余部分，需确认参数
+            volumeViewer(pa_img_total_2_cut);
+            save('pa_img_total_step1.mat', 'pa_img_total_2_cut', '-v7.3');
 
        case 10  % 超声旋转复合
             [num_spl, num_rcv, num_rot] = size(dataUS); 
