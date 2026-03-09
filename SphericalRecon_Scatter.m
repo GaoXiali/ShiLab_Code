@@ -13,10 +13,10 @@ clc;
 % close all; 
 gpuDevice(1).reset() % 重置GPU，释放所有显存
 
-addpath 'D:\code\code_from_XiaLi';
-addpath 'D:\code\code_from_XiaoYang\final_version'
+% addpath 'D:\code\code_from_XiaLi';
+% addpath 'D:\code\code_from_XiaoYang\final_version'
 
-folder_path = 'G:\26.02.02\z=5\';
+folder_path = strcat('I:\GXL\球阵系统\26.02.02\z=0\');
 fixMatlabFilenames(folder_path);%自动校正错误文件名
 str_name = dir(fullfile(folder_path, '*_0.mat'));
 [datax,DAQ_time_point] = func_3D_PACT_Data_Time_Read(folder_path,str_name(577).name);
@@ -56,7 +56,7 @@ for i = 1:length(folders)
 end
 
 %% 系统参数设置
-reconstruct_mode = 4; % 1: 单声速CUDA重建; 2: 单声速扫描遍历; 3：PA粒子遍历成像并统计FWHM 
+reconstruct_mode = 3; % 1: 单声速CUDA重建; 2: 单声速扫描遍历; 3：PA粒子遍历成像并统计FWHM 
                       % 4：外声速迭代; 5:单声速迭代 6:单声速旋转复合 7:双声速旋转复合 
                       % 8:单声速相干因子旋转复合 9:单/双声速旋转平移复合 
                       % 10:超声单声速重建  11: 超声单声速遍历 12:US粒子遍历成像并统计FWHM
@@ -92,16 +92,16 @@ Ndata = size(str_name,1)/4;%采集数据组数
 Nframey_scan = floor(Ndata/Nframex_scan); %y方向扫描次数
 GaussianMask_FWHM = 40; % 子图中的高斯掩膜尺寸，避免拼接出缝，小散射片用20，大散射片用40
  
-% % % % % 图像重建的尺寸设置
-% x_size = 50;
-% y_size = 50;
-% z_size = 20;
-% resolution_factor = 10; % 分辨率因子
+% % % % 图像重建的尺寸设置
+x_size = 50;
+y_size = 50;
+z_size = 20;
+resolution_factor = 10; % 分辨率因子
 
-x_size = 2;
-y_size = 2;
-z_size = 2;
-resolution_factor = 100; % 分辨率因子
+% x_size = 2;
+% y_size = 2;
+% z_size = 2;
+% resolution_factor = 100; % 分辨率因子
 
 % % US SCATTER
 % center_x = 1.2;  % 中心坐标X
@@ -312,7 +312,7 @@ switch reconstruct_mode
             
             center_x = floor(frame/17) * (-5) + 0.5 + 40;  % 中心坐标X
             center_y = mod(frame-1,17) * 5 + 0.3 - 40; % 中心坐标Y
-            center_z = -6.2;  % 中心坐标Z
+            center_z = -1.2;  % 中心坐标Z
             
             %系统参数
             if Is_Denoising == 1 

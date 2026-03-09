@@ -18,11 +18,11 @@ gpuDevice(1).reset() % 重置GPU，释放所有显存
 
 % folder_path = 'D:\Data\test_data\';
 % folder_path = strcat('D:\Data\test_data\');
-folder_path = strcat('I:\GXL\球阵系统\2026.2.3\back_scan\');
+folder_path = strcat('I:\GXL\球阵系统\26.02.02\z=5\');
 fixMatlabFilenames(folder_path);%自动校正错误文件名
 
 str_name = dir(fullfile(folder_path, '*_0.mat'));
-[datax,DAQ_time_point] = func_3D_PACT_Data_Time_Read(folder_path,str_name(141).name);
+[datax,DAQ_time_point] = func_3D_PACT_Data_Time_Read(folder_path,str_name(577).name);
 
 % 根据表面信号判断区分超声帧和光声帧
 frame1_val = max(sum(datax(:, 1:100, 1)));
@@ -49,7 +49,6 @@ detector(:,2) = detector(:,2)+0.39;
 folders = {'USresult', 'PAresult'}; % 将所有需要创建的文件夹放在这里
 
 for i = 1:length(folders)
-    % 修正：第二个参数必须是 'dir'
     if ~exist(folders{i}, 'dir') 
         mkdir(folders{i});
         fprintf('已创建文件夹: %s\n', folders{i});
@@ -59,7 +58,7 @@ for i = 1:length(folders)
 end
 
 %% 系统参数设置
-reconstruct_mode = 9; % 1: 单声速CUDA重建; 2: 双声速CUDA重建; 3：内声速迭代 
+reconstruct_mode = 13; % 1: 单声速CUDA重建; 2: 双声速CUDA重建; 3：内声速迭代 
                       % 4：外声速迭代; 5:单声速迭代 6:单声速旋转复合 7:双声速旋转复合 
                       % 8:单声速相干因子旋转复合 9:单/双声速旋转平移复合 
                       % 10:超声单声速重建  11: 超声单声速遍历 12:超声旋转平移复合
@@ -67,7 +66,7 @@ reconstruct_mode = 9; % 1: 单声速CUDA重建; 2: 双声速CUDA重建; 3：内�
 
 % 声速设置
 T = 22.8; % 水温
-V_M = 1502.0;
+V_M = 1490.0;
 V_M_Range = 1496:0.5:1520; % 单声速迭代范围
 
 % 超声参数设置
@@ -79,29 +78,28 @@ Is_Gating = 1; % 1表示需要门控，0表示不需要门控,直接对前US_FRA
 Is_Denoising = 1; % 1表示去噪，0表示不去噪，去除换能器接收带宽外的噪声，会一定程度增加计算量(目前仅修改了光声相关代码）
 
 % VM_out = waterSoundSpeed(T); % 外声速（水），单位 m/s 
-VM_out = 1502; % 外声速（水），单位 m/s  
+VM_out = 1490; % 外声速（水），单位 m/s  
 VM_out_Range = 1475:0.5:1499; % 外声速迭代范围
-VM_in = 1502; % 内声速，单位 m/s  
+VM_in = 1490; % 内声速，单位 m/s  
 VM_in_Range = 1555:5:1699; % 内声速迭代范围
 
 % 位移扫描参数
 step_x = 1; %mm 平移复合位移数（文件数量方向）
 step_y = 1; %mm 平移复合位移数(帧/文件数量方向）
-step_length_x = 6; %mm 水平相邻两帧位移距离
-step_length_y = 8; %mm 垂直相邻两帧位移距离
-Nframex_scan = 7; %x方向扫描次数
-Ndata = size(str_name,1)/4;%采集数据组数
-Nframey_scan = 10;%floor(Ndata/Nframex_scan); %y方向扫描次数
-GaussianMask_FWHM = 30; % 子图中的高斯掩膜尺寸，避免拼接出缝，小散射片用20，大散射片用40
+step_length_x = 5; %mm 水平相邻两帧位移距离
+step_length_y = 5; %mm 垂直相邻两帧位移距离
+Nframex_scan = 17; %x方向扫描次数
+Nframey_scan = 17; %y方向扫描次数
+GaussianMask_FWHM = 40; % 子图中的高斯掩膜尺寸，避免拼接出缝，小散射片用20，大散射片用40
 
 % 图像重建的尺寸设置
-x_size = 60;
-y_size = 60;
-z_size = 20;
-resolution_factor = 10; % 分辨率因子
-center_x = -0;  % 中心坐标X
-center_y = 0; % 中心坐标Y
-center_z = 0;  % 中心坐标Z
+x_size = 2;
+y_size = 2;
+z_size = 1.5;
+resolution_factor = 50; % 分辨率因子
+center_x = 0.5;  % 中心坐标X
+center_y = 0.3; % 中心坐标Y
+center_z = -6.2;  % 中心坐标Z
 
 %椭球面参数设置
 Ellipse.a = 15.0; % 椭球面x轴半径
@@ -120,7 +118,7 @@ pa_data = -data;% 取负是为了让重建背景反色
 fs = 40; % 声音采样频率 单位为MHz
 R = 100; % 球形探测器阵列半径
 
-% %对球阵传感器阵列插值p=] 
+% %对球阵传感器阵列插值
 % [pa_data, detector] = interpolation(pa_data(:,:,1),detector);
 
 % 计算像素点的具体位置
@@ -953,107 +951,244 @@ switch reconstruct_mode
             volumeViewer(pa_img_total_2_cut);
             save('pa_img_total_step1.mat', 'pa_img_total_2_cut', '-v7.3');
 
-       case 10  % 超声旋转复合
-            [num_spl, num_rcv, num_rot] = size(dataUS); 
-            iq_ch = reshape(hilbert(reshape(dataUS, num_spl, [])), [num_spl, num_rcv, num_rot]);
+   case 10  % 超声旋转复合
+        [num_spl, num_rcv, num_rot] = size(dataUS); 
+        iq_ch = reshape(hilbert(reshape(dataUS, num_spl, [])), [num_spl, num_rcv, num_rot]);
 
-            fs = 40e6;
-            fc = 3.5e6;
+        fs = 40e6;
+        fc = 3.5e6;
+        
+        c = V_US;
+        ang_hole = 16.5/180*pi;
+        f_xdc = 15e-3;
+        rad_xdc = 108.85e-3;
+        
+        del_tx = f_xdc/c;
+        rad_src = rad_xdc - f_xdc;
+        wvl = c/fc;
+        x_src = - rad_src * sin(ang_hole);
+        y_src = 0;
+        z_src = rad_src * cos(ang_hole);
+        src = [ x_src, y_src, -z_src ];
+        
+        rcv = detector * 1e-3;
+        rcv(:,3) = -rcv(:,3);
+        
+        % acq/beamforming specs
+        no_rcv = 1:1024;
+        del_acq = 100e-6;
+        t0 = del_acq;
+        
+        % mechanical specs
+        no_pos = 1:1:100;
+        rng_rot = -80; % for crossed hair
+        a_rot = 0:-0.8:99*-0.811;
+        num_pos = numel(no_pos);
+
+        % imaging volume
+        dp = 1e-3 / resolution_factor;
+        x_sp = [x_range(1), x_range(end)] * 1e-3; % sp: span
+        y_sp = [y_range(1), y_range(end)] * 1e-3;
+        z_sp = [z_range(1), z_range(end)] * 1e-3;
             
-            c = V_US;
-            ang_hole = 16.5/180*pi;
-            f_xdc = 15e-3;
-            rad_xdc = 108.85e-3;
+        x_1d = x_range * 1e-3;
+        y_1d = y_range * 1e-3;
+        z_1d = z_range * 1e-3;
+
+        num_xp = numel( x_1d );
+        num_yp = numel( y_1d );
+        num_zp = numel( z_1d );
+        [ x_2d , y_2d ] = ndgrid( x_1d , y_1d );
+        num_pnt_xy = numel(x_2d);
+        
+        % beamforming
+        % --- 修改 beamforming 部分 ---
+        beta = 10/180*pi; 
+        fd = 0;
+        das_params = [t0, fs, fd, c, beta, del_tx];
+        
+        corr_ang_x = theta_x;   % 绕X轴旋转 (上下倾斜)
+        corr_ang_y = theta_y;   % 绕Y轴旋转 (左右倾斜)
+        corr_ang_z = theta_z;   % 绕Z轴旋转 (平面内旋转)
+       
+        Rx = [1 0 0; 0 cosd(corr_ang_x) -sind(corr_ang_x); 0 sind(corr_ang_x) cosd(corr_ang_x)];
+        Ry = [cosd(corr_ang_y) 0 -sind(corr_ang_y); 0 1 0; sind(corr_ang_y) 0 cosd(corr_ang_y)];
+        Rz = [cosd(corr_ang_z) -sind(corr_ang_z) 0; sind(corr_ang_z) cosd(corr_ang_z) 0; 0 0 1];
+        R_corr = Rz * Ry * Rx; % 全局校正矩阵
+        
+        if Is_Gating==1
+            sub_data = dataUS(:, :, :); 
+            [T, D, F] = size(sub_data);
+            reshaped_data = reshape(sub_data, T*D, F);
             
+            corr_matrix = corr(reshaped_data);
+            
+            corr_line = mean(corr_matrix, 1);
+            corr_line = corr_line / max(corr_line(:));
+            
+            static_frames = 1:num_rot;
+            top_vals = maxk(corr_line, US_FRAME_COMPOUND);
+            Similarity_threshold = top_vals(end);
+            static_frames = static_frames(corr_line>=Similarity_threshold);
+        else
+            static_frames = 1:US_FRAME_COMPOUND;
+        end
+        
+        % % --- 绘图展示静态帧 ---
+        % figure;
+        % plot(corr_line, 'b'); hold on;
+        % % 使用一次 plot 绘制所有散点，比在循环里 plot 快得多
+        % if ~isempty(static_frames)
+        %     plot(static_frames, corr_line(static_frames), 'r*');
+        % end
+        % hold off;
+        % title('Signal Correlation Analysis');
+        % toc
+        
+        iq_im_sum = zeros(num_xp, num_yp, num_zp);
+        iq_image_frame = zeros(num_xp, num_yp, num_zp,num_pos);
+        
+        for ii = 1 : num_rot
+            if ~ismember(ii,static_frames)
+                continue
+            end
+            tic;
+            % 1. 旋转计算 (保持原样)
+            no_pos_i = no_pos(ii);
+            a_i = a_rot(no_pos_i);
+            R_i = rotz(a_i);
+            src_i = (R_i * src')';
+            rcv_i = (R_i * rcv(no_rcv, :)')';
+        
+            src_i = (R_corr * src_i')';
+            rcv_i = (R_corr * rcv_i')';
+            
+            % 2. Update Orientation (保持原样)
+            ori_rcv_i = [0, 0, 0] - rcv_i;
+            ori_rcv_i = ori_rcv_i ./ vecnorm(ori_rcv_i, 2, 2);
+            
+            % 3. 调用 CUDA 加速重建 (一行代码替代原来的 jj 循环)
+            % 注意：x_1d, y_1d, z_1d 是向量
+            iq_im_pos_i = mex_das_gpu(iq_ch(:, no_rcv, no_pos_i), ...
+                                      x_1d, y_1d, z_1d, ...
+                                      rcv_i, src_i, ori_rcv_i, ...
+                                      das_params);
+            
+            % 4. 累加结果
+            % CUDA 输出已经是 (num_xp, num_yp, num_zp) 格式
+            % 如果你后面需要保存单帧结果，直接保存 iq_im_pos_i
+            iq_im_sum = iq_im_sum + iq_im_pos_i;
+            iq_image_frame(:,:,:,ii) = iq_im_pos_i;
+
+            dr = Dynamic_Range;
+            
+            bm_im = abs(iq_im_sum);
+            bm_im = bm_im / max(bm_im, [], 'all');
+            bm = 20*log10(bm_im);
+            bm(bm<-dr) = -dr;
+            bm_total = bm +dr;
+
+            filenameZX = sprintf('USresult/US Compounding zx frame=%d,sos=%.1f.png',ii, c);
+            filenameZY = sprintf('USresult/US Compounding zy frame=%d,sos=%.1f.png',ii, c);
+            filenameXY = sprintf('USresult/US Compounding xy frame=%d,sos=%.1f.png',ii, c);
+            imwrite(mat2gray(squeeze(max(bm_total(:,:,:),[],2))), filenameZX);
+            imwrite(mat2gray(squeeze(max(bm_total(:,:,:),[],1))), filenameZY);
+            imwrite(mat2gray(squeeze(max(bm_total(:,:,:),[],3))'), filenameXY);
+            
+            fprintf(1, 'CUDA 3D Recon for Pos %d finished. %.4f sec used.\n', ii, toc);
+        end
+        
+        % 结果处理
+        bm_im = abs(iq_im_sum);
+        bm_im = bm_im / max(bm_im, [], 'all');
+        bm = 20*log10(bm_im);
+        bm(bm<-30) = nan;
+
+        figure();
+        subplot(131); imagesc(z_sp, x_sp, squeeze(max(bm(:,:,:),[],2))); 
+        axis equal tight; colormap gray; colorbar; set(gca, 'tickdir', 'out'); 
+        ylabel('X'); xlabel('Z'); title('XZ proj'); 
+        subplot(133); imagesc(z_sp, y_sp, squeeze(max(bm(:,:,:),[], 1))); 
+        axis equal tight; colormap gray; colorbar; set(gca, 'tickdir', 'out'); 
+        ylabel('Y'); xlabel('Z'); title('YZ proj'); 
+        subplot(132); imagesc(x_sp, y_sp, squeeze(max(bm(:,:,:),[], 3))'); 
+        axis equal tight; colormap gray; colorbar; 
+        ylabel('Y'); xlabel('X'); title('XY proj'); set(gca, 'tickdir', 'out'); 
+
+
+   case 11 % 超声声速遍历
+        [num_spl, num_rcv, num_rot] = size(dataUS); 
+        iq_ch = reshape(hilbert(reshape(dataUS, num_spl, [])), [num_spl, num_rcv, num_rot]);
+        %
+        fs = 40e6;
+        fc = 3.5e6;
+        
+        ang_hole = 16.5/180*pi;
+        f_xdc = 15e-3;
+        rad_xdc = 108.85e-3;
+        
+
+        rad_src = rad_xdc - f_xdc;
+        x_src = - rad_src * sin(ang_hole);
+        y_src = 0;
+        z_src = rad_src * cos(ang_hole);
+        src = [ x_src, y_src, -z_src ];
+        
+        rcv = detector * 1e-3;
+        rcv(:,3) = -rcv(:,3);
+        
+        % acq/beamforming specs
+        no_rcv = 1:1024;
+        del_acq = 100e-6;
+        t0 = del_acq;
+        
+        % mechanical specs
+        no_pos = 1:1:100;
+        rng_rot = -80; % for crossed hair
+        % a_rot = linspace(0, rng_rot, num_rot);
+        a_rot = 0:-0.8:99*-0.811;
+        num_pos = numel(no_pos);
+        
+        % imaging volume
+        dp = 1e-3 / resolution_factor;
+        x_sp = [x_range(1), x_range(end)] * 1e-3; % sp: span
+        y_sp = [y_range(1), y_range(end)] * 1e-3;
+        z_sp = [z_range(1), z_range(end)] * 1e-3;
+            
+        x_1d = x_range * 1e-3;
+        y_1d = y_range * 1e-3;
+        z_1d = z_range * 1e-3;
+
+        num_xp = numel( x_1d );
+        num_yp = numel( y_1d );
+        num_zp = numel( z_1d );
+        [ x_2d , y_2d ] = ndgrid( x_1d , y_1d );
+        num_pnt_xy = numel(x_2d);
+        
+        % beamforming
+        % --- 修改 beamforming 部分 ---
+        beta = 10/180*pi; 
+        fd = 0;
+        % 参数打包: [t0, fs, fd, c, beta, del_tx]
+                    
+        corr_ang_x = theta_x;   % 绕X轴旋转 (上下倾斜)
+        corr_ang_y = theta_y;   % 绕Y轴旋转 (左右倾斜)
+        corr_ang_z = theta_z;   % 绕Z轴旋转 (平面内旋转)
+
+        Rx = [1 0 0; 0 cosd(corr_ang_x) -sind(corr_ang_x); 0 sind(corr_ang_x) cosd(corr_ang_x)];
+        Ry = [cosd(corr_ang_y) 0 -sind(corr_ang_y); 0 1 0; sind(corr_ang_y) 0 cosd(corr_ang_y)];
+        Rz = [cosd(corr_ang_z) -sind(corr_ang_z) 0; sind(corr_ang_z) cosd(corr_ang_z) 0; 0 0 1];
+        R_corr = Rz * Ry * Rx; % 全局校正矩阵
+
+        for sos = V_M_Range
+            c = sos;
             del_tx = f_xdc/c;
-            rad_src = rad_xdc - f_xdc;
-            wvl = c/fc;
-            x_src = - rad_src * sin(ang_hole);
-            y_src = 0;
-            z_src = rad_src * cos(ang_hole);
-            src = [ x_src, y_src, -z_src ];
-            
-            rcv = detector * 1e-3;
-            rcv(:,3) = -rcv(:,3);
-            
-            % acq/beamforming specs
-            no_rcv = 1:1024;
-            del_acq = 100e-6;
-            t0 = del_acq;
-            
-            % mechanical specs
-            no_pos = 1:1:100;
-            rng_rot = -80; % for crossed hair
-            a_rot = 0:-0.8:99*-0.811;
-            num_pos = numel(no_pos);
-
-            % imaging volume
-            dp = 1e-3 / resolution_factor;
-            x_sp = [x_range(1), x_range(end)] * 1e-3; % sp: span
-            y_sp = [y_range(1), y_range(end)] * 1e-3;
-            z_sp = [z_range(1), z_range(end)] * 1e-3;
-                
-            x_1d = x_range * 1e-3;
-            y_1d = y_range * 1e-3;
-            z_1d = z_range * 1e-3;
-
-            num_xp = numel( x_1d );
-            num_yp = numel( y_1d );
-            num_zp = numel( z_1d );
-            [ x_2d , y_2d ] = ndgrid( x_1d , y_1d );
-            num_pnt_xy = numel(x_2d);
-            
-            % beamforming
-            % --- 修改 beamforming 部分 ---
-            beta = 10/180*pi; 
-            fd = 0;
             das_params = [t0, fs, fd, c, beta, del_tx];
             
-            corr_ang_x = theta_x;   % 绕X轴旋转 (上下倾斜)
-            corr_ang_y = theta_y;   % 绕Y轴旋转 (左右倾斜)
-            corr_ang_z = theta_z;   % 绕Z轴旋转 (平面内旋转)
-           
-            Rx = [1 0 0; 0 cosd(corr_ang_x) -sind(corr_ang_x); 0 sind(corr_ang_x) cosd(corr_ang_x)];
-            Ry = [cosd(corr_ang_y) 0 -sind(corr_ang_y); 0 1 0; sind(corr_ang_y) 0 cosd(corr_ang_y)];
-            Rz = [cosd(corr_ang_z) -sind(corr_ang_z) 0; sind(corr_ang_z) cosd(corr_ang_z) 0; 0 0 1];
-            R_corr = Rz * Ry * Rx; % 全局校正矩阵
-            
-            if Is_Gating==1
-                sub_data = dataUS(:, :, :); 
-                [T, D, F] = size(sub_data);
-                reshaped_data = reshape(sub_data, T*D, F);
-                
-                corr_matrix = corr(reshaped_data);
-                
-                corr_line = mean(corr_matrix, 1);
-                corr_line = corr_line / max(corr_line(:));
-                
-                static_frames = 1:num_rot;
-                top_vals = maxk(corr_line, US_FRAME_COMPOUND);
-                Similarity_threshold = top_vals(end);
-                static_frames = static_frames(corr_line>=Similarity_threshold);
-            else
-                static_frames = 1:US_FRAME_COMPOUND;
-            end
-            
-            % % --- 绘图展示静态帧 ---
-            % figure;
-            % plot(corr_line, 'b'); hold on;
-            % % 使用一次 plot 绘制所有散点，比在循环里 plot 快得多
-            % if ~isempty(static_frames)
-            %     plot(static_frames, corr_line(static_frames), 'r*');
-            % end
-            % hold off;
-            % title('Signal Correlation Analysis');
-            % toc
             
             iq_im_sum = zeros(num_xp, num_yp, num_zp);
-            iq_image_frame = zeros(num_xp, num_yp, num_zp,num_pos);
-            
-            for ii = 1 : num_rot
-                if ~ismember(ii,static_frames)
-                    continue
-                end
+
+            for ii = 1 : 1
                 tic;
                 % 1. 旋转计算 (保持原样)
                 no_pos_i = no_pos(ii);
@@ -1080,174 +1215,37 @@ switch reconstruct_mode
                 % CUDA 输出已经是 (num_xp, num_yp, num_zp) 格式
                 % 如果你后面需要保存单帧结果，直接保存 iq_im_pos_i
                 iq_im_sum = iq_im_sum + iq_im_pos_i;
-                iq_image_frame(:,:,:,ii) = iq_im_pos_i;
 
-                dr = Dynamic_Range;
-                
-                bm_im = abs(iq_im_sum);
-                bm_im = bm_im / max(bm_im, [], 'all');
-                bm = 20*log10(bm_im);
-                bm(bm<-dr) = -dr;
-                bm_total = bm +dr;
-
-                filenameZX = sprintf('USresult/US Compounding zx frame=%d,sos=%.1f.png',ii, c);
-                filenameZY = sprintf('USresult/US Compounding zy frame=%d,sos=%.1f.png',ii, c);
-                filenameXY = sprintf('USresult/US Compounding xy frame=%d,sos=%.1f.png',ii, c);
-                imwrite(mat2gray(squeeze(max(bm_total(:,:,:),[],2))), filenameZX);
-                imwrite(mat2gray(squeeze(max(bm_total(:,:,:),[],1))), filenameZY);
-                imwrite(mat2gray(squeeze(max(bm_total(:,:,:),[],3))'), filenameXY);
-                
+                % 5. 保存 (可选)
                 fprintf(1, 'CUDA 3D Recon for Pos %d finished. %.4f sec used.\n', ii, toc);
             end
             
-            % 结果处理
+            dr = Dynamic_Range;
+            
             bm_im = abs(iq_im_sum);
             bm_im = bm_im / max(bm_im, [], 'all');
             bm = 20*log10(bm_im);
-            bm(bm<-30) = nan;
+            bm(bm<-dr) = -dr;
+            bm_total = bm +dr;
 
-            figure();
-            subplot(131); imagesc(z_sp, x_sp, squeeze(max(bm(:,:,:),[],2))); 
+            filenameZX = sprintf('USresult/US SOS LOOP zx sos=%.1f.png', c);
+            filenameZY = sprintf('USresult/US SOS LOOP zy sos=%.1f.png', c);
+            filenameXY = sprintf('USresult/US SOS LOOP xy sos=%.1f.png', c);
+            imwrite(mat2gray(squeeze(max(bm_total(:,:,:),[],2))), filenameZX);
+            imwrite(mat2gray(squeeze(max(bm_total(:,:,:),[],1))), filenameZY);
+            imwrite(mat2gray(squeeze(max(bm_total(:,:,:),[],3))'), filenameXY);
+            
+            figure(3);
+            subplot(131); imagesc(z_sp, x_sp, squeeze(max(bm_total(:,:,:),[],2))); 
             axis equal tight; colormap gray; colorbar; set(gca, 'tickdir', 'out'); 
             ylabel('X'); xlabel('Z'); title('XZ proj'); 
-            subplot(133); imagesc(z_sp, y_sp, squeeze(max(bm(:,:,:),[], 1))); 
+            subplot(133); imagesc(z_sp, y_sp, squeeze(max(bm_total(:,:,:),[], 1))); 
             axis equal tight; colormap gray; colorbar; set(gca, 'tickdir', 'out'); 
             ylabel('Y'); xlabel('Z'); title('YZ proj'); 
-            subplot(132); imagesc(x_sp, y_sp, squeeze(max(bm(:,:,:),[], 3))'); 
+            subplot(132); imagesc(x_sp, y_sp, squeeze(max(bm_total(:,:,:),[], 3))'); 
             axis equal tight; colormap gray; colorbar; 
             ylabel('Y'); xlabel('X'); title('XY proj'); set(gca, 'tickdir', 'out'); 
-
-
-       case 11 % 超声声速遍历
-            [num_spl, num_rcv, num_rot] = size(dataUS); 
-            iq_ch = reshape(hilbert(reshape(dataUS, num_spl, [])), [num_spl, num_rcv, num_rot]);
-            %
-            fs = 40e6;
-            fc = 3.5e6;
-            
-            ang_hole = 16.5/180*pi;
-            f_xdc = 15e-3;
-            rad_xdc = 108.85e-3;
-            
-
-            rad_src = rad_xdc - f_xdc;
-            x_src = - rad_src * sin(ang_hole);
-            y_src = 0;
-            z_src = rad_src * cos(ang_hole);
-            src = [ x_src, y_src, -z_src ];
-            
-            rcv = detector * 1e-3;
-            rcv(:,3) = -rcv(:,3);
-            
-            % acq/beamforming specs
-            no_rcv = 1:1024;
-            del_acq = 100e-6;
-            t0 = del_acq;
-            
-            % mechanical specs
-            no_pos = 1:1:100;
-            rng_rot = -80; % for crossed hair
-            % a_rot = linspace(0, rng_rot, num_rot);
-            a_rot = 0:-0.8:99*-0.811;
-            num_pos = numel(no_pos);
-            
-            % imaging volume
-            dp = 1e-3 / resolution_factor;
-            x_sp = [x_range(1), x_range(end)] * 1e-3; % sp: span
-            y_sp = [y_range(1), y_range(end)] * 1e-3;
-            z_sp = [z_range(1), z_range(end)] * 1e-3;
-                
-            x_1d = x_range * 1e-3;
-            y_1d = y_range * 1e-3;
-            z_1d = z_range * 1e-3;
-
-            num_xp = numel( x_1d );
-            num_yp = numel( y_1d );
-            num_zp = numel( z_1d );
-            [ x_2d , y_2d ] = ndgrid( x_1d , y_1d );
-            num_pnt_xy = numel(x_2d);
-            
-            % beamforming
-            % --- 修改 beamforming 部分 ---
-            beta = 10/180*pi; 
-            fd = 0;
-            % 参数打包: [t0, fs, fd, c, beta, del_tx]
-                        
-            corr_ang_x = theta_x;   % 绕X轴旋转 (上下倾斜)
-            corr_ang_y = theta_y;   % 绕Y轴旋转 (左右倾斜)
-            corr_ang_z = theta_z;   % 绕Z轴旋转 (平面内旋转)
-
-            Rx = [1 0 0; 0 cosd(corr_ang_x) -sind(corr_ang_x); 0 sind(corr_ang_x) cosd(corr_ang_x)];
-            Ry = [cosd(corr_ang_y) 0 -sind(corr_ang_y); 0 1 0; sind(corr_ang_y) 0 cosd(corr_ang_y)];
-            Rz = [cosd(corr_ang_z) -sind(corr_ang_z) 0; sind(corr_ang_z) cosd(corr_ang_z) 0; 0 0 1];
-            R_corr = Rz * Ry * Rx; % 全局校正矩阵
-
-            for sos = V_M_Range
-                c = sos;
-                del_tx = f_xdc/c;
-                das_params = [t0, fs, fd, c, beta, del_tx];
-                
-                
-                iq_im_sum = zeros(num_xp, num_yp, num_zp);
-    
-                for ii = 1 : 1
-                    tic;
-                    % 1. 旋转计算 (保持原样)
-                    no_pos_i = no_pos(ii);
-                    a_i = a_rot(no_pos_i);
-                    R_i = rotz(a_i);
-                    src_i = (R_i * src')';
-                    rcv_i = (R_i * rcv(no_rcv, :)')';
-                
-                    src_i = (R_corr * src_i')';
-                    rcv_i = (R_corr * rcv_i')';
-                    
-                    % 2. Update Orientation (保持原样)
-                    ori_rcv_i = [0, 0, 0] - rcv_i;
-                    ori_rcv_i = ori_rcv_i ./ vecnorm(ori_rcv_i, 2, 2);
-                    
-                    % 3. 调用 CUDA 加速重建 (一行代码替代原来的 jj 循环)
-                    % 注意：x_1d, y_1d, z_1d 是向量
-                    iq_im_pos_i = mex_das_gpu(iq_ch(:, no_rcv, no_pos_i), ...
-                                              x_1d, y_1d, z_1d, ...
-                                              rcv_i, src_i, ori_rcv_i, ...
-                                              das_params);
-                    
-                    % 4. 累加结果
-                    % CUDA 输出已经是 (num_xp, num_yp, num_zp) 格式
-                    % 如果你后面需要保存单帧结果，直接保存 iq_im_pos_i
-                    iq_im_sum = iq_im_sum + iq_im_pos_i;
-    
-                    % 5. 保存 (可选)
-                    fprintf(1, 'CUDA 3D Recon for Pos %d finished. %.4f sec used.\n', ii, toc);
-                end
-                
-                dr = Dynamic_Range;
-                
-                bm_im = abs(iq_im_sum);
-                bm_im = bm_im / max(bm_im, [], 'all');
-                bm = 20*log10(bm_im);
-                bm(bm<-dr) = -dr;
-                bm_total = bm +dr;
-    
-                filenameZX = sprintf('USresult/US SOS LOOP zx sos=%.1f.png', c);
-                filenameZY = sprintf('USresult/US SOS LOOP zy sos=%.1f.png', c);
-                filenameXY = sprintf('USresult/US SOS LOOP xy sos=%.1f.png', c);
-                imwrite(mat2gray(squeeze(max(bm_total(:,:,:),[],2))), filenameZX);
-                imwrite(mat2gray(squeeze(max(bm_total(:,:,:),[],1))), filenameZY);
-                imwrite(mat2gray(squeeze(max(bm_total(:,:,:),[],3))'), filenameXY);
-                
-                figure(3);
-                subplot(131); imagesc(z_sp, x_sp, squeeze(max(bm_total(:,:,:),[],2))); 
-                axis equal tight; colormap gray; colorbar; set(gca, 'tickdir', 'out'); 
-                ylabel('X'); xlabel('Z'); title('XZ proj'); 
-                subplot(133); imagesc(z_sp, y_sp, squeeze(max(bm_total(:,:,:),[], 1))); 
-                axis equal tight; colormap gray; colorbar; set(gca, 'tickdir', 'out'); 
-                ylabel('Y'); xlabel('Z'); title('YZ proj'); 
-                subplot(132); imagesc(x_sp, y_sp, squeeze(max(bm_total(:,:,:),[], 3))'); 
-                axis equal tight; colormap gray; colorbar; 
-                ylabel('Y'); xlabel('X'); title('XY proj'); set(gca, 'tickdir', 'out'); 
-            end
+        end
 
     case 12 % 超声扫描
         scan_num = 70;
@@ -1507,6 +1505,7 @@ switch reconstruct_mode
         imwrite(mat2gray(squeeze(max(bm_total(:,:,:),[],3))'), filenamexY);
 
         case 13 % 视场固定，物体平移复合
+        spotStats = initCase13SpotStats();
         %% 子程序说明：
         % 逻辑：传感器阵列和重构视场（Points_img）保持不动
         % 将每一组重构结果粘贴到大矩阵的不同位置，从而形成物体阵列
@@ -1567,25 +1566,28 @@ switch reconstruct_mode
                 us_idx = (2 - offset) : 2 : size(datax, 3); % 超声帧索引
                 
                 pa_data = -datax(:,:,pa_idx);%选择光声帧数
-                figure(1);imagesc(pa_data(:,:,1),[-100,100]);
+                % figure(1);imagesc(pa_data(:,:,1),[-100,100]);
 
                 if Is_Denoising == 1 
                     pa_data = denoise_sinogram(pa_data);%滤除换能器带宽外的噪声
                 end
 
-                x_sensor_new = x_sensor;% + (xframe-1)*step_length_x;
-                y_sensor_new = y_sensor;% - (yframe-1)*step_length_y;
-                pa_data_frame = gpuArray(single(pa_data(:,:,yframe))); % [Nelemt x Nsample]
+                x_sensor_new = x_sensor;
+                y_sensor_new = y_sensor;
+                pa_data_frame = gpuArray(single(pa_data(:,:,1))); % [Nelemt x Nsample]
                 detector_new = gpuArray(single([x_sensor_new,y_sensor_new,z_sensor,z_sensor*0+1]));% [Nelemt x 3]
                 
                 %%
-                center_x = -1.75 - 40 + (xframe-1)*step_x*step_length_x;  % 将粒子所在位置设为视场中心坐标X
-                center_y = 3.35 - 40 + (yframe-1)*step_y*step_length_y; % 将粒子所在位置设为视场中心坐标Y
-                center_z = 0;  % 中心坐标Z
+                if xframe == 1 && yframe == 1
+                    spotStats = initCase13SpotStats();
+                end
+                center_x_new = center_x + (Nframex_scan-1)/2*step_length_x - (xframe-1)*step_x*step_length_x;  % 将粒子所在位置设为视场中心坐标X
+                center_y_new = center_y - (Nframey_scan-1)/2*step_length_y + (yframe-1)*step_y*step_length_y; % 将粒子所在位置设为视场中心坐标Y
+                center_z_new = center_z;  % 中心坐标Z
                 
-                x_range = ((1:Npixel_x)-(Npixel_x+1)/2)*x_size/(Npixel_x-1) + center_x;
-                y_range = ((1:Npixel_y)-(Npixel_y+1)/2)*y_size/(Npixel_y-1) + center_y;
-                z_range = ((1:Npixel_z)-(Npixel_z+1)/2)*z_size/(Npixel_z-1) + center_z;
+                x_range = ((1:Npixel_x)-(Npixel_x+1)/2)*x_size/(Npixel_x-1) + center_x_new;
+                y_range = ((1:Npixel_y)-(Npixel_y+1)/2)*y_size/(Npixel_y-1) + center_y_new;
+                z_range = ((1:Npixel_z)-(Npixel_z+1)/2)*z_size/(Npixel_z-1) + center_z_new;
                 [X_img, Y_img, Z_img] = meshgrid(x_range, y_range, z_range);
                 
                 X_img = gpuArray(single(X_img));
@@ -1613,15 +1615,16 @@ switch reconstruct_mode
                 corr_line = corr_line/max(corr_line(3:end));%避免静止帧相关性太强导致归一化后系数偏小
                 corr_line(1) = 10; %先采集后旋转时，强制首帧参考
                 corr_line(1:9) = 0; %先采集后旋转时，去除未旋转的数据
-                static_frames = 1:Nframe;
-                top_vals = maxk(corr_line, 20);%找出最大的20个值，并按降序排列
-                Similarity_threshold = top_vals(end);%动态调整复合时所用的相似度阈值，避免不同组数据相似度波动导致复合帧数不同
-                static_frames = static_frames(corr_line>=Similarity_threshold);
+                static_frames = 11:30;%为了减小抖动，使用固定索引
+                % static_frames = 1:Nframe;
+                % top_vals = maxk(corr_line, 2);%找出最大的20个值，并按降序排列
+                % Similarity_threshold = top_vals(end);%动态调整复合时所用的相似度阈值，避免不同组数据相似度波动导致复合帧数不同
+                % static_frames = static_frames(corr_line>=Similarity_threshold);
                 % 绘制相关系数图
-                figure(11),plot(corr_line,'b'),hold on
-                for isf = static_frames
-                    plot(isf,corr_line(isf),'*r'),hold on
-                end
+                % figure(11),plot(corr_line,'b'),hold on
+                % for isf = static_frames
+                %     plot(isf,corr_line(isf),'*r'),hold on
+                % end
                 hold off;
                 
                 
@@ -1637,7 +1640,7 @@ switch reconstruct_mode
                      % 坐标旋转(角度制,顺时针为负，逆时针为正 ：对应Y轴正方向朝上，否则相反）
                     theta_x = 0; % 以x轴为中心旋转 
                     theta_y = 0; % 以y轴为中心旋转 
-                    theta_z = (static_frames(frame)-static_frames(1))*delta_angle; % 以z轴为中心旋转 
+                    theta_z = (static_frames(frame)-1)*delta_angle; % 以z轴为中心旋转 
                         
                     %坐标整体平移(这里的坐标平移会影响椭球中心选取)
                     trans_x = 0;
@@ -1668,7 +1671,7 @@ switch reconstruct_mode
                     
                     % 归一化并应用非线性增强
                     pa_img2 = pa_img1./total_angle_weight;
-                    [GaussianMask, ~, ~] = generateGaussianMask({x_range, y_range}, 'Center', [center_x,center_y], 'Sigma', 9);
+                    [GaussianMask, ~, ~] = generateGaussianMask({x_range, y_range}, 'Center', [center_x_new,center_y_new], 'Sigma', 9);
                     GaussianMask = GaussianMask.*ones(1,1,size(z_range,2));%z方向均匀
                     pa_img3 = pa_img2.*GaussianMask;
                     % pa_img3 = pa_img3/max(pa_img3,[],'all');
@@ -1695,14 +1698,20 @@ switch reconstruct_mode
                                      
                     drawnow limitrate;
 
-                    filenameZX = sprintf('zx xframe=%d, yframe=%d, frame=%d.png', xframe, yframe, frame);
-                    filenameZY = sprintf('zy xframe=%d, yframe=%d, frame=%d.png', xframe, yframe, frame);
-                    filenameXY = sprintf('xy xframe=%d, yframe=%d, frame=%d.png', xframe, yframe, frame);
-                    imwrite(mat2gray(squeeze(max(pa_total(end:-1:1,:,:),[],1))), filenameZX);
-                    imwrite(mat2gray(squeeze(max(pa_total(end:-1:1,:,:),[],2))), filenameZY);
-                    imwrite(mat2gray(squeeze(max(pa_total(end:-1:1,:,:),[],3))), filenameXY);
+                    % 慎开下面这段保存代码，阵列模式下会产生大量frame overlay小文件，删除效率低
+                    % filenameZX = sprintf('PAresult/frm_ovl zx xfrm=%d, yfrm=%d, frm=%d.png', xframe, yframe, frame);
+                    % filenameZY = sprintf('PAresult/frm_ovl zy xfrm=%d, yfrm=%d, frm=%d.png', xframe, yframe, frame);
+                    % filenameXY = sprintf('PAresult/frm_ovl xy xfrm=%d, yfrm=%d, frm=%d.png', xframe, yframe, frame);
+                    % imwrite(mat2gray(squeeze(max(pa_total(end:-1:1,:,:),[],1))), filenameZX);
+                    % imwrite(mat2gray(squeeze(max(pa_total(end:-1:1,:,:),[],2))), filenameZY);
+                    % imwrite(mat2gray(squeeze(max(pa_total(end:-1:1,:,:),[],3))), filenameXY);
 
                 end % frame end
+
+                spotStats = appendCase13SpotStats( ...
+                    spotStats, pa_total, x_range, y_range, z_range, ...
+                    xframe, yframe, frame_idx, static_Nframe, ...
+                    center_x_new, center_y_new, center_z_new);
 
                 toc
                 SubWinSize_y = imgsize(1)-1;
@@ -1734,16 +1743,19 @@ switch reconstruct_mode
                 
                 drawnow limitrate;
                             
-                filenameZX = sprintf('step=%d zx xframe=%d, yframe=%d.png',step_x, xframe, yframe);
-                filenameZY = sprintf('step=%d zy xframe=%d, yframe=%d.png',step_x, xframe, yframe);
-                filenameXY = sprintf('step=%d xy xframe=%d, yframe=%d.png',step_x, xframe, yframe);
+                filenameZX = sprintf('PAresult/Array step=%d zx xframe=%d, yframe=%d.png',step_x, xframe, yframe);
+                filenameZY = sprintf('PAresult/Array step=%d zy xframe=%d, yframe=%d.png',step_x, xframe, yframe);
+                filenameXY = sprintf('PAresult/Array step=%d xy xframe=%d, yframe=%d.png',step_x, xframe, yframe);
                 imwrite(mat2gray(squeeze(max(pa_img_total_2(end:-1:1,:,:),[],1))), filenameZX);
                 imwrite(mat2gray(squeeze(max(pa_img_total_2(end:-1:1,:,:),[],2))), filenameZY);
                 imwrite(mat2gray(squeeze(max(pa_img_total_2(end:-1:1,:,:),[],3))), filenameXY);
             end %yframe end
         end %xframe end
 
-       save(['pa_img_fullsize_step',num2str(step_x),'.mat'], 'pa_img_total_2', '-v7.3');
+        saveCase13SpotStats(spotStats, 'PAresult');
+
+
+       % save(['pa_img_fullsize_step',num2str(step_x),'.mat'], 'pa_img_total_2', '-v7.3');
     otherwise
 
         disp('Error: Undefined reconstruct mode!');
