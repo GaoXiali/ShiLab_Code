@@ -404,7 +404,6 @@ switch reconstruct_mode
 
     case 6 %单声速多帧旋转复合
         pa_total = zeros(size(Points_img(:,:,:,1)),'single');
-        pa_img_frames = zeros(Npixel_x,Npixel_y,Npixel_z,Nframe);
 
         if Is_Gating == 1
             [T, D, F] = size(pa_data(:,2501:3000,:));
@@ -478,7 +477,6 @@ switch reconstruct_mode
     
             end
             pa_total = pa_total+pa_img2;
-            pa_img_frames(:,:,:,frame) = pa_img2;
             firstframe_flag = 0;%关闭首帧标识
 
             % 3D图像查看
@@ -513,7 +511,6 @@ switch reconstruct_mode
 
     case 7 %双声速复合
         pa_total = zeros(size(Points_img(:,:,:,1)));
-        pa_img_frames = zeros(Npixel_x,Npixel_y,Npixel_z,Nframe);
 
         if Is_Gating == 1
             sub_data = pa_data(:,2501:3000,:); % 提取目标区间数据
@@ -601,7 +598,6 @@ switch reconstruct_mode
             % 
             % end
             pa_total = pa_total+pa_img2;
-            pa_img_frames(:,:,:,frame) = pa_img2;
 
             firstframe_flag = 0;%关闭首帧标识
 
@@ -1755,7 +1751,7 @@ switch reconstruct_mode
         saveCase13SpotStats(spotStats, 'PAresult');
 
 
-       % save(['pa_img_fullsize_step',num2str(step_x),'.mat'], 'pa_img_total_2', '-v7.3');
+       save(['PAresult\pa_img_fullsize_step',num2str(step_x),'.mat'], 'pa_img_total_2', '-v7.3');
     otherwise
 
         disp('Error: Undefined reconstruct mode!');
